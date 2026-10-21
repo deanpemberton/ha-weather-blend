@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Weather Blend",
+        "description": "Enter station prefixes (one per line), for example sensor.station_a and sensor.station_b. Each station should expose suffixes such as _temperature and _solar_radiation.",
+        "data": {
+          "stations": "Station entity prefixes",
+          "max_age_minutes": "Maximum observation age (minutes)"
+        }
+      }
+    }
+  }
+}
