@@ -3,12 +3,16 @@
     "step": {
       "user": {
         "title": "Weather Blend",
-        "description": "Enter station prefixes (one per line), for example sensor.station_a and sensor.station_b. Each station should expose suffixes such as _temperature and _solar_radiation.",
+        "description": "Configure existing Home Assistant station sensor prefixes, one per line. Optional comma-separated weight per station. No values leave Home Assistant.",
         "data": {
-          "stations": "Station entity prefixes",
+          "stations": "Station prefixes and weights",
           "max_age_minutes": "Maximum observation age (minutes)"
         }
       }
+    },
+    "error": {
+      "invalid_station": "Enter 1–20 unique sensor prefixes, one per line.",
+      "invalid_weight": "Station weights must be greater than zero and at most 100."
     }
   }
 }
