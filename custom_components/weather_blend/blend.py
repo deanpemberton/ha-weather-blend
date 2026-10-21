@@ -83,7 +83,8 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
         mad = _median_abs_deviation(values)
         tolerance = max(TOLERANCE.get(metric, 1), 3.5 * 1.4826 * mad)
         kept = [o for o in valid if abs(o.value - mid) <= tolerance]
-        if len(kept) >= 2:
+        # Require a strict majority. A 2-2 split has no authoritative winner.
+        if len(kept) > len(valid) / 2:
             rejected += len(valid) - len(kept)
             valid = kept
 
