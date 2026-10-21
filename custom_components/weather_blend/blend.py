@@ -76,19 +76,25 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
         angle = (degrees(atan2(y, x)) + 360) % 360
         return Result(angle, len(valid), rejected, "high" if len(valid) >= 3 and strength > .7 else "reduced", 1-strength)
 
-    # Rain events are spatially patchy. Do not reject an isolated wet station.
+    # Partition observations at physically significant gaps. A large MAD in a
+    # 2-2 split must not hide two incompatible clusters.
     split = False
-    if len(valid) >= 3 and metric not in ("precipitation_rate", "precipitation_today", "wind_speed", "wind_gust", "solar_radiation"):
-        values = [o.value for o in valid]
-        mid = median(values)
-        mad = _median_abs_deviation(values)
-        tolerance = max(TOLERANCE.get(metric, 1), 3.5 * 1.4826 * mad)
-        kept = [o for o in valid if abs(o.value - mid) <= tolerance]
-        # Require a strict majority. A 2-2 split has no authoritative winner.
-        if len(kept) > len(valid) / 2:
-            rejected += len(valid) - len(kept)
-            valid = kept
-        elif len(kept) < len(valid):
+    if len(valid) >= 3 and metric not in (
+        "precipitation_rate", "precipitation_today",
+        "wind_speed", "wind_gust", "solar_radiation",
+    ):
+        ordered = sorted(valid, key=lambda o: o.value)
+        threshold = TOLERANCE.get(metric, 1)
+        clusters = [[ordered[0]]]
+        for observation in ordered[1:]:
+            if observation.value - clusters[-1][-1].value > threshold:
+                clusters.append([])
+            clusters[-1].append(observation)
+        biggest = max(clusters, key=len)
+        if len(biggest) > len(valid) / 2:
+            rejected += len(valid) - len(biggest)
+            valid = biggest
+        elif len(clusters) > 1:
             split = True
 
     total = sum(o.weight for o in valid)
