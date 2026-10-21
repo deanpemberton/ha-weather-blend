@@ -19,7 +19,7 @@ def make_sensor(values, expired=()):
         states[f"{prefix}_local_observation_time"] = Reading((stamp - age).isoformat(sep=" "))
         states[f"{prefix}_temperature"] = Reading(value)
     hass = SimpleNamespace(states=SimpleNamespace(get=states.get))
-    entry = SimpleNamespace(entry_id="example", data={"stations": stations, "max_age_minutes": 15})
+    entry = SimpleNamespace(entry_id="example", data={"stations": stations, "max_age_minutes": 15}, options={})
     return WeatherBlendSensor(hass, entry, "temperature")
 
 def test_adapter_majority():

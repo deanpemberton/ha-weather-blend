@@ -14,5 +14,21 @@
       "invalid_station": "Enter 1–20 unique sensor prefixes, one per line.",
       "invalid_weight": "Station weights must be greater than zero and at most 100."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Weather Blend settings",
+        "description": "Edit station prefixes, weights and observation freshness. Configuration remains local.",
+        "data": {
+          "stations": "Station prefixes and weights",
+          "max_age_minutes": "Maximum observation age (minutes)"
+        }
+      }
+    },
+    "error": {
+      "invalid_station": "Enter 1–20 unique sensor prefixes, one per line.",
+      "invalid_weight": "Station weights must be greater than zero and at most 100."
+    }
   }
 }

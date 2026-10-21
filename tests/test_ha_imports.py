@@ -19,3 +19,9 @@ def test_manifest_is_valid_json():
     assert manifest["domain"] == "weather_blend"
     assert manifest["config_flow"] is True
     assert manifest["requirements"] == []
+
+
+def test_options_flow_factory_matches_modern_ha_api():
+    from custom_components.weather_blend.config_flow import WeatherBlendFlow, WeatherBlendOptionsFlow
+    flow = WeatherBlendFlow.async_get_options_flow(None)
+    assert isinstance(flow, WeatherBlendOptionsFlow)
