@@ -37,6 +37,8 @@ class ReliabilityTracker:
             peers = [o.value for o in observations if o.source != observation.source]
             if len(peers) < 2:
                 continue
+            if max(peers) - min(peers) > TOLERANCE[metric]:
+                continue
             disagreement = abs(observation.value - median(peers))
             key = (metric, observation.source)
             if disagreement > TOLERANCE[metric] * 2:
