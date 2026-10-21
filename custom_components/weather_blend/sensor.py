@@ -20,7 +20,8 @@ class WeatherBlendSensor(SensorEntity):
         self.hass = hass
         self.entry = entry
         self.metric = metric
-        self.stations = entry.data["stations"]
+        self.settings = {**entry.data, **entry.options}
+        self.stations = self.settings["stations"]
         self._attr_name = "Weather Blend " + metric.replace("_", " ").title()
         self._attr_unique_id = f"{entry.entry_id}_{metric}"
         self._attr_native_unit_of_measurement = METRICS[metric][0]
@@ -67,7 +68,7 @@ class WeatherBlendSensor(SensorEntity):
     def _observations(self, metric):
         suffix = "relative_humidity" if metric == "relative_humidity" else metric
         output = []
-        max_age = self.entry.data["max_age_minutes"] * 60
+        max_age = self.settings["max_age_minutes"] * 60
         for station in self.stations:
             prefix = station["prefix"]
             age = self._age(prefix)
@@ -92,7 +93,7 @@ class WeatherBlendSensor(SensorEntity):
                 age = self._age(prefix)
                 temp = self._value(prefix, "temperature")
                 rh = self._value(prefix, "relative_humidity")
-                if age is not None and -120 <= age <= self.entry.data["max_age_minutes"] * 60 and temp is not None and rh is not None:
+                if age is not None and -120 <= age <= self.settings["max_age_minutes"] * 60 and temp is not None and rh is not None:
                     paired.append((temp, rh, station["weight"]))
                     ages[prefix] = age
             t = blend("temperature", self._observations("temperature"))
@@ -111,7 +112,7 @@ class WeatherBlendSensor(SensorEntity):
                 count = min(t.count, len(paired))
                 confidence = t.confidence if count >= 2 else "reduced"
         else:
-            result = blend(metric, self._observations(metric), self.entry.data["max_age_minutes"] * 60)
+            result = blend(metric, self._observations(metric), self.settings["max_age_minutes"] * 60)
             value, count, confidence = result.value, result.count, result.confidence
         self._attr_native_value = round(value, 2) if value is not None else None
         self._attr_available = value is not None
@@ -120,4 +121,10 @@ class WeatherBlendSensor(SensorEntity):
             "configured_stations": len(self.stations),
             "confidence": confidence,
             "reliability_model": "rolling_peer_agreement",
+            "station_health": {s["prefix"]: {
+                "reliability": round(self._tracker.health(metric, s["prefix"]).reliability, 3),
+                "accepted": self._tracker.health(metric, s["prefix"]).accepted,
+                "rejected": self._tracker.health(metric, s["prefix"]).rejected,
+                "observation_age_seconds": round(self._age(s["prefix"]), 0) if self._age(s["prefix"]) is not None else None,
+            } for s in self.stations},
         }
