@@ -77,7 +77,7 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
         return Result(angle, len(valid), rejected, "high" if len(valid) >= 3 and strength > .7 else "reduced", 1-strength)
 
     # Rain events are spatially patchy. Do not reject an isolated wet station.
-    if len(valid) >= 3 and metric not in ("precipitation_rate", "precipitation_today"):
+    if len(valid) >= 3 and metric not in ("precipitation_rate", "precipitation_today", "wind_speed", "wind_gust", "solar_radiation"):
         values = [o.value for o in valid]
         mid = median(values)
         mad = _median_abs_deviation(values)
