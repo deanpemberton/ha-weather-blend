@@ -31,6 +31,10 @@ def parse_stations(text):
 class WeatherBlendFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return WeatherBlendOptionsFlow(config_entry)
+
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
@@ -52,3 +56,32 @@ class WeatherBlendFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.All(vol.Coerce(int), vol.Range(min=2, max=120)),
         })
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+
+class WeatherBlendOptionsFlow(config_entries.OptionsFlow):
+    """Change private station settings without deleting the config entry."""
+
+    def __init__(self, config_entry):
+        self._entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        current = {**self._entry.data, **self._entry.options}
+        errors = {}
+        if user_input is not None:
+            try:
+                stations = parse_stations(user_input["stations"])
+            except ValueError as exc:
+                errors["base"] = str(exc)
+            else:
+                return self.async_create_entry(title="", data={
+                    "stations": stations,
+                    "max_age_minutes": user_input["max_age_minutes"],
+                })
+        lines = "\n".join(f'{s["prefix"]},{s["weight"]}' for s in current["stations"])
+        schema = vol.Schema({
+            vol.Required("stations", default=(user_input or {}).get("stations", lines)):
+                selector.TextSelector(selector.TextSelectorConfig(multiline=True)),
+            vol.Required("max_age_minutes", default=(user_input or {}).get("max_age_minutes", current["max_age_minutes"])):
+                vol.All(vol.Coerce(int), vol.Range(min=2, max=120)),
+        })
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
