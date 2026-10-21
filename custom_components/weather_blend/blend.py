@@ -77,6 +77,7 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
         return Result(angle, len(valid), rejected, "high" if len(valid) >= 3 and strength > .7 else "reduced", 1-strength)
 
     # Rain events are spatially patchy. Do not reject an isolated wet station.
+    split = False
     if len(valid) >= 3 and metric not in ("precipitation_rate", "precipitation_today", "wind_speed", "wind_gust", "solar_radiation"):
         values = [o.value for o in valid]
         mid = median(values)
@@ -87,6 +88,8 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
         if len(kept) > len(valid) / 2:
             rejected += len(valid) - len(kept)
             valid = kept
+        elif len(kept) < len(valid):
+            split = True
 
     total = sum(o.weight for o in valid)
     value = sum(o.value * o.weight for o in valid) / total
@@ -94,6 +97,8 @@ def blend(metric: str, observations: list[Observation], max_age: float = 900) ->
     tolerance = TOLERANCE.get(metric, 1)
     confidence = ("high" if len(valid) >= 3 and spread <= tolerance * 2
                   else "reduced")
+    if split:
+        confidence = "low"
     if metric in ("precipitation_rate", "precipitation_today") and any(o.value > 0 for o in valid) and any(o.value == 0 for o in valid):
         confidence = "reduced"
     return Result(value, len(valid), rejected, confidence, spread)
