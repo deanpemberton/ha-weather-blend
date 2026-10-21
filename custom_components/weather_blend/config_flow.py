@@ -33,7 +33,7 @@ class WeatherBlendFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def async_get_options_flow(config_entry):
-        return WeatherBlendOptionsFlow(config_entry)
+        return WeatherBlendOptionsFlow()
 
     async def async_step_user(self, user_input=None):
         errors = {}
@@ -61,11 +61,8 @@ class WeatherBlendFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class WeatherBlendOptionsFlow(config_entries.OptionsFlow):
     """Change private station settings without deleting the config entry."""
 
-    def __init__(self, config_entry):
-        self._entry = config_entry
-
     async def async_step_init(self, user_input=None):
-        current = {**self._entry.data, **self._entry.options}
+        current = {**self.config_entry.data, **self.config_entry.options}
         errors = {}
         if user_input is not None:
             try:
