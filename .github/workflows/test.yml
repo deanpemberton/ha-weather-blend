@@ -1,0 +1,39 @@
+name: Tests and privacy checks
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip pytest homeassistant
+      - run: python -m compileall -q custom_components
+      - run: python -m pytest -q tests
+      - name: Check for accidental private data and credentials
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib,re,sys
+          files=[p for p in pathlib.Path('.').rglob('*') if p.is_file() and '.git' not in p.parts]
+          patterns=[
+              r'(?i)api[_-]?key\s*[:=]\s*["\x27]?[a-z0-9]{20,}',
+              r'(?i)bearer\s+[a-z0-9._-]{20,}',
+              r'(?i)password\s*[:=]\s*["\x27][^"\x27]{5,}',
+              r'(?i)ILOWER\d+',
+          ]
+          problems=[]
+          for path in files:
+              if path.suffix in {'.py','.md','.json','.yaml','.yml','.txt'}:
+                  data=path.read_text(errors='replace')
+                  for pattern in patterns:
+                      if re.search(pattern,data):
+                          problems.append(str(path))
+          if problems:
+              print('Potentially sensitive content:',sorted(set(problems)))
+              sys.exit(1)
+          print('Privacy checks passed')
+          PY
