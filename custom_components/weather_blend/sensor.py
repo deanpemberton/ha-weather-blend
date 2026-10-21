@@ -5,6 +5,7 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 from homeassistant.util import dt as dt_util
 from .blend import Observation, blend, weighted_vapor_pressure, relative_humidity, dewpoint_from_vapor_pressure, feels_like
 from .const import METRICS
+from .reliability import ReliabilityTracker
 
 async def async_setup_entry(hass, entry, async_add_entities):
     sensors = [WeatherBlendSensor(hass, entry, metric) for metric in METRICS]
@@ -26,6 +27,8 @@ class WeatherBlendSensor(SensorEntity):
         self._attr_native_value = None
         self._attr_available = False
         self._attr_extra_state_attributes = {}
+        self._tracker = ReliabilityTracker()
+        self._last_observation_signature = None
 
     async def async_added_to_hass(self):
         suffixes = set(METRICS) | {"humidity", "local_observation_time"}
@@ -71,7 +74,13 @@ class WeatherBlendSensor(SensorEntity):
             value = self._value(prefix, suffix)
             if age is not None and value is not None and -120 <= age <= max_age:
                 output.append(Observation(value, station["weight"], age, prefix))
-        return output
+        # Reliability scores are local, metric-specific and bounded.
+        # Do not learn repeatedly from the same station reading on refresh ticks.
+        sample_signature = tuple((o.source, self.hass.states.get(f"{o.source}_local_observation_time").state) for o in output)
+        if metric in ("temperature", "pressure") and sample_signature != self._last_observation_signature:
+            self._tracker.update(metric, output)
+            self._last_observation_signature = sample_signature
+        return [Observation(o.value, o.weight * self._tracker.reliability(metric, o.source), o.age_seconds, o.source) for o in output]
 
     def _update(self):
         metric = self.metric
@@ -110,4 +119,5 @@ class WeatherBlendSensor(SensorEntity):
             "contributing_stations": count,
             "configured_stations": len(self.stations),
             "confidence": confidence,
+            "reliability_model": "rolling_peer_agreement",
         }
